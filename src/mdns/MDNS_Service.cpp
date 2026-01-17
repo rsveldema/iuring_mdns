@@ -4,10 +4,6 @@
 
 #include <mdns/MDNS_Service.hpp>
 
-#include <Application.hpp>
-#include <ptp/PtpService.hpp>
-
-
 namespace mdns
 {
 static constexpr uint8_t CACHE_FLASH_SHIFT = 15;
@@ -242,15 +238,15 @@ const uint8_t* extract_name(const uint8_t* start_of_packet,
             LOG_ERROR(logger, "MDNS name extraction: pointer out of bounds");
             return nullptr;
         }
-        
+
         const uint8_t len = *ptr++;
-        
+
         // Length of 0 marks end of name
         if (len == 0)
         {
             break;
         }
-        
+
         // Check we still have room after reading the length byte
         if (ptr >= end_of_packet)
         {
@@ -272,7 +268,7 @@ const uint8_t* extract_name(const uint8_t* start_of_packet,
 
             if (offset >= size_of_packet)
             {
-                LOG_ERROR(logger, "MDNS name extraction: invalid offset {} >= packet size {}", 
+                LOG_ERROR(logger, "MDNS name extraction: invalid offset {} >= packet size {}",
                     offset, size_of_packet);
                 return nullptr;
             }
@@ -289,7 +285,7 @@ const uint8_t* extract_name(const uint8_t* start_of_packet,
                 LOG_ERROR(logger, "MDNS name extraction: label length {} exceeds packet boundary", len);
                 return nullptr;
             }
-            
+
             std::string s((const char*) ptr, len);
 
             // fprintf(stderr, "found string[0x{:x}, off 0x%lx]: {}\n", len,

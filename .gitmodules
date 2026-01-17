@@ -1,3 +1,6 @@
 [submodule "iuring"]
 	path = iuring
 	url = https://github.com/rsveldema/iuring.git
+[submodule "urtsched"]
+	path = urtsched
+	url = https://github.com/rsveldema/urtsched.git

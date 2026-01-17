@@ -1,21 +1,13 @@
-# iuring-mdns
 
-MDNS (Multicast DNS) service implementation for flex-audio-service.
+iuring based MDNS server library
+===============================
 
-This library provides MDNS support including handlers for:
-- NMOS HTTP services
-- Ravenna HTTP services
-- Ravenna RTSP services
+This is a C++ library that you link against your application to give it MDNS
+server abilities.
+The advantages over avahi/zeroconf libs are:
+- single library, no client-library and seperate daemon
+- small footprint
+- easy to add your services
+- fast/low-latency
 
-## Building
-
-```bash
-mkdir build
-cd build
-cmake ..
-make
-```
-
-## Usage
-
-This library is typically used as a submodule in the flex-audio-service project.
+Its based on iuring (which is a C++ library that wraps liburing for fast, low-latency network access).
