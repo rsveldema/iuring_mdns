@@ -4,7 +4,10 @@ project(io_uring_mdns CXX)
 
 include(CTest)
 
-add_subdirectory(iuring)
+if (NOT TARGET iuring)
+    add_subdirectory(iuring)
+endif()
+
 add_subdirectory(urtsched)
 
 enable_testing()
