@@ -2,15 +2,81 @@
     "version": 8,
     "configurePresets": [
         {
-            "name": "Custom configure preset",
-            "displayName": "Custom configure preset",
-            "description": "Sets Ninja generator, build and install directory",
+            "name": "Debugging",
+            "displayName": "gcc with debugging",
+            "description": "Sets Ninja generator and debugging",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_CXX_FLAGS": "-g2  -Wall -Wextra"
             }
+        },
+        {
+            "name": "Release",
+            "displayName": "optimized",
+            "description": "Sets Ninja generator with optimization enabled",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_CXX_FLAGS": "-O3  -Wall -Wextra"
+            }
+        },
+        {
+            "name": "Profiling",
+            "displayName": "gcc with profiling",
+            "description": "Sets Ninja generator, and profiling",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "g++",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_CXX_FLAGS": "-pg",
+                "CMAKE_SHARED_LINKER_FLAGS": "-pg"
+            }
+        },
+        {
+            "name": "clang-build",
+            "displayName": "Clang",
+            "description": "Using compilers: C = /usr/bin/clang, CXX = /usr/bin/clang++",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "raspi-x-tools",
+            "displayName": "Configure preset x-tools-raspi",
+            "description": "Sets Ninja generator, build and install directory",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_TOOLCHAIN_FILE": "${env:CMAKE_TOOLCHAIN_FILE}",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Debugging",
+            "description": "",
+            "displayName": "Debugging build",
+            "configurePreset": "Debugging",
+            "jobs": 4
+        }, {
+            "name": "Profiling",
+            "description": "",
+            "displayName": "Profiling build",
+            "configurePreset": "Profiling",
+            "jobs": 4
         }
     ]
 }
