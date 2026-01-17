@@ -1,0 +1,3 @@
+[submodule "iuring"]
+	path = iuring
+	url = https://github.com/rsveldema/iuring.git
