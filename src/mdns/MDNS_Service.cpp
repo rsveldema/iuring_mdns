@@ -174,13 +174,13 @@ private:
 void MDNS_Service::send_reply(const std::vector<QuestionData>& questions,
     const iuring::IPAddress& from_address, transaction_id_t id)
 {
-    MyAnswerList answerlist;
+    auto answerlist = std::make_unique<MyAnswerList>();
     for (auto& q : questions)
     {
         bool handled = false;
         for (auto& h : m_handlers)
         {
-            if (h->handle_question(q, answerlist) == MDNS_IsHandled::IS_HANDLED)
+            if (h->handle_question(q, *answerlist) == MDNS_IsHandled::IS_HANDLED)
             {
                 handled = true;
                 break;
@@ -195,7 +195,7 @@ void MDNS_Service::send_reply(const std::vector<QuestionData>& questions,
         }
     }
 
-    if (answerlist.get_num_answers() == 0)
+    if (answerlist->get_num_answers() == 0)
     {
         LOG_DEBUG(get_logger(), "mdns query not for us: no answers");
         return;
@@ -212,9 +212,9 @@ void MDNS_Service::send_reply(const std::vector<QuestionData>& questions,
 
     auto& pkt = wi->get_send_packet();
     MDNS_Header hdr(
-        MDNS_Header::MessageType::REPLY, id, answerlist.get_num_answers(), 0);
+        MDNS_Header::MessageType::REPLY, id, answerlist->get_num_answers(), 0);
     pkt.append(hdr);
-    pkt.append(answerlist.data(), answerlist.size());
+    pkt.append(answerlist->data(), answerlist->size());
 
     wi->submit_packet(
         iuring::DatagramSendParameters{ .destination_address = dest_addr,
