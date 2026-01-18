@@ -10,6 +10,8 @@
 #include <urtsched/RealtimeKernel.hpp>
 #include <urtsched/Service.hpp>
 
+#include "RRType.hpp"
+
 namespace mdns
 {
 using transaction_id_t = uint16_t;
@@ -22,17 +24,13 @@ enum class MDNS_class : uint16_t
     HS = 4
 };
 
-
-enum class DNS_RecordType
-{
-    A = 1,     // ipv4 address
-    PTR = 12,  // domain name pointer
-    TXT = 16,  // text string
-    SRV = 33,  // server selection
-    AAAA = 28, // ipv6 address
-};
+using DNS_RecordType = RRType;
 
 
+/** MDNS packet header, it is like in the 
+ * standard DNS header but with some fields
+ * not used in MDNS.
+ */
 struct __attribute__((packed)) MDNS_Header
 {
 private:

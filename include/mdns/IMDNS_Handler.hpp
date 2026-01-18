@@ -72,6 +72,10 @@ struct ReplyData : public StringUtils::ToStringMixin
         return StringUtils::to_string(name_list);
     }
 
+    /** @brief compares with possible wildcard entries
+     * 
+     * @param to check against. for example: *.b.c whill match x.b.c registered service
+     */
     bool equals(const std::vector<std::string>& s) const
     {
         if (name_list.size() != s.size())

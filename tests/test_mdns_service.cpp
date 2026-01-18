@@ -172,6 +172,14 @@ protected:
         auto ip = iuring::IPAddress::parse("192.168.1.100");
         ASSERT_TRUE(ip.has_value());
         adapter->set_interface_ip4(ip.value());
+        
+        // Setup timer expectations for the realtime kernel
+        EXPECT_CALL(*timer, get_time_ns())
+            .Times(AnyNumber())
+            .WillRepeatedly([]() {
+                return 
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch());
+            });
     }
 
     std::unique_ptr<time_utils::mocks::Timer> timer;
@@ -232,7 +240,7 @@ TEST_F(MDNS_ServiceTest, HandlesValidMDNSQueryPacket)
     // Now invoke the callback with our test packet
     ASSERT_TRUE(recv_callback != nullptr);
     auto ret = recv_callback(msg);
-    ASSERT_EQ(ret, iuring::ReceivePostAction::NONE);
+    ASSERT_EQ(ret, iuring::ReceivePostAction::RE_SUBMIT);
 
     // Process the kernel's tasks to allow the oneshot task to execute
     rt_kernel->run(1s);
@@ -294,7 +302,7 @@ TEST_F(MDNS_ServiceTest, HandlesValidMDNSReplyPacket)
 
     ASSERT_TRUE(recv_callback != nullptr);
     auto ret = recv_callback(msg);
-    ASSERT_EQ(ret, iuring::ReceivePostAction::NONE);
+    ASSERT_EQ(ret, iuring::ReceivePostAction::RE_SUBMIT);
 }
 
 // Test that a packet that is too small is rejected
@@ -329,7 +337,7 @@ TEST_F(MDNS_ServiceTest, RejectsTooSmallPacket)
     ASSERT_TRUE(recv_callback != nullptr);
     // This should log an error but not crash
     auto ret = recv_callback(msg);
-    ASSERT_EQ(ret, iuring::ReceivePostAction::NONE);
+    ASSERT_EQ(ret, iuring::ReceivePostAction::RE_SUBMIT);
 }
 
 // Test that a packet with truncated name is rejected
@@ -383,7 +391,7 @@ TEST_F(MDNS_ServiceTest, RejectsTruncatedNameInQuery)
 
     ASSERT_TRUE(recv_callback != nullptr);
     auto ret = recv_callback(msg);
-    ASSERT_EQ(ret, iuring::ReceivePostAction::NONE);
+    ASSERT_EQ(ret, iuring::ReceivePostAction::RE_SUBMIT);
 }
 
 // Test that a packet with invalid compression offset is rejected
@@ -433,7 +441,7 @@ TEST_F(MDNS_ServiceTest, RejectsInvalidCompressionOffset)
 
     ASSERT_TRUE(recv_callback != nullptr);
     auto ret = recv_callback(msg);
-    ASSERT_EQ(ret, iuring::ReceivePostAction::NONE);
+    ASSERT_EQ(ret, iuring::ReceivePostAction::RE_SUBMIT);
 }
 
 // Test that a packet with missing question fields is rejected
@@ -530,7 +538,7 @@ TEST_F(MDNS_ServiceTest, HandlesComplexValidQuery)
 
     ASSERT_TRUE(recv_callback != nullptr);
     auto ret = recv_callback(msg);
-    ASSERT_EQ(ret, iuring::ReceivePostAction::NONE);
+    ASSERT_EQ(ret, iuring::ReceivePostAction::RE_SUBMIT);
 
     rt_kernel->run(1s);
 }
