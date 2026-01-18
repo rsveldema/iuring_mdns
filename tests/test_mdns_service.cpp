@@ -156,6 +156,139 @@ std::vector<uint8_t> create_mdns_reply_packet(transaction_id_t id,
     return packet;
 }
 
+// Helper to create an MDNS reply packet with compressed names
+std::vector<uint8_t> create_mdns_reply_with_compression(transaction_id_t id)
+{
+    std::vector<uint8_t> packet;
+
+    // MDNS Header (12 bytes)
+    packet.push_back((id >> 8) & 0xFF);
+    packet.push_back(id & 0xFF);
+    packet.push_back(0x84); // QR=1, AA=1
+    packet.push_back(0x00);
+    packet.push_back(0x00);
+    packet.push_back(0x00); // 0 questions
+    packet.push_back(0x00);
+    packet.push_back(0x03); // 3 answers
+    packet.push_back(0x00);
+    packet.push_back(0x00); // 0 authority
+    packet.push_back(0x00);
+    packet.push_back(0x00); // 0 additional
+
+    // First answer: myservice._http._tcp.local PTR
+    // Name: _http._tcp.local (will be at offset 12)
+    const size_t first_name_offset = packet.size();
+    packet.push_back(0x05); // length of "_http"
+    packet.insert(packet.end(), {'_', 'h', 't', 't', 'p'});
+    packet.push_back(0x04); // length of "_tcp"
+    packet.insert(packet.end(), {'_', 't', 'c', 'p'});
+    packet.push_back(0x05); // length of "local"
+    packet.insert(packet.end(), {'l', 'o', 'c', 'a', 'l'});
+    packet.push_back(0x00); // null terminator
+
+    // TYPE PTR, CLASS IN
+    packet.push_back(0x00);
+    packet.push_back(0x0C); // PTR
+    packet.push_back(0x00);
+    packet.push_back(0x01); // IN
+    
+    // TTL
+    packet.push_back(0x00);
+    packet.push_back(0x00);
+    packet.push_back(0x11);
+    packet.push_back(0x94);
+
+    // RDLENGTH
+    const size_t rdlen_pos1 = packet.size();
+    packet.push_back(0x00);
+    packet.push_back(0x00); // placeholder
+
+    // RDATA: myservice._http._tcp.local (uses compression for _http._tcp.local)
+    const size_t rdata_start1 = packet.size();
+    packet.push_back(0x09); // length of "myservice"
+    packet.insert(packet.end(), {'m', 'y', 's', 'e', 'r', 'v', 'i', 'c', 'e'});
+    // Compression pointer to offset 12 (_http._tcp.local)
+    packet.push_back(0xC0);
+    packet.push_back(static_cast<uint8_t>(first_name_offset));
+    
+    // Update RDLENGTH
+    uint16_t rdlen1 = packet.size() - rdata_start1;
+    packet[rdlen_pos1] = (rdlen1 >> 8) & 0xFF;
+    packet[rdlen_pos1 + 1] = rdlen1 & 0xFF;
+
+    // Second answer: another service using compression
+    // Name: _http._tcp.local (compressed pointer to first occurrence)
+    packet.push_back(0xC0);
+    packet.push_back(static_cast<uint8_t>(first_name_offset));
+
+    // TYPE PTR, CLASS IN
+    packet.push_back(0x00);
+    packet.push_back(0x0C); // PTR
+    packet.push_back(0x00);
+    packet.push_back(0x01); // IN
+    
+    // TTL
+    packet.push_back(0x00);
+    packet.push_back(0x00);
+    packet.push_back(0x11);
+    packet.push_back(0x94);
+
+    // RDLENGTH
+    const size_t rdlen_pos2 = packet.size();
+    packet.push_back(0x00);
+    packet.push_back(0x00); // placeholder
+
+    // RDATA: otherservice._http._tcp.local (uses compression)
+    const size_t rdata_start2 = packet.size();
+    packet.push_back(0x0C); // length of "otherservice"
+    packet.insert(packet.end(), {'o', 't', 'h', 'e', 'r', 's', 'e', 'r', 'v', 'i', 'c', 'e'});
+    // Compression pointer to offset 12 (_http._tcp.local)
+    packet.push_back(0xC0);
+    packet.push_back(static_cast<uint8_t>(first_name_offset));
+    
+    // Update RDLENGTH
+    uint16_t rdlen2 = packet.size() - rdata_start2;
+    packet[rdlen_pos2] = (rdlen2 >> 8) & 0xFF;
+    packet[rdlen_pos2 + 1] = rdlen2 & 0xFF;
+
+    // Third answer: deeply nested compression
+    // Name uses compression pointer
+    packet.push_back(0xC0);
+    packet.push_back(static_cast<uint8_t>(first_name_offset));
+
+    // TYPE PTR, CLASS IN
+    packet.push_back(0x00);
+    packet.push_back(0x0C); // PTR
+    packet.push_back(0x00);
+    packet.push_back(0x01); // IN
+    
+    // TTL
+    packet.push_back(0x00);
+    packet.push_back(0x00);
+    packet.push_back(0x11);
+    packet.push_back(0x94);
+
+    // RDLENGTH
+    const size_t rdlen_pos3 = packet.size();
+    packet.push_back(0x00);
+    packet.push_back(0x00); // placeholder
+
+    // RDATA: thirdservice._http._tcp.local (uses compression)
+    const size_t rdata_start3 = packet.size();
+    packet.push_back(0x0C); // length of "thirdservice"
+    packet.insert(packet.end(), {'t', 'h', 'i', 'r', 'd', 's', 'e', 'r', 'v', 'i', 'c', 'e'});
+    // Compression pointer to offset 12 (_http._tcp.local)
+    packet.push_back(0xC0);
+    packet.push_back(static_cast<uint8_t>(first_name_offset));
+    
+    // Update RDLENGTH
+    uint16_t rdlen3 = packet.size() - rdata_start3;
+    packet[rdlen_pos3] = (rdlen3 >> 8) & 0xFF;
+    packet[rdlen_pos3 + 1] = rdlen3 & 0xFF;
+
+    return packet;
+}
+
 class MDNS_ServiceTest : public ::testing::Test
 {
 protected:
@@ -541,6 +674,108 @@ TEST_F(MDNS_ServiceTest, HandlesComplexValidQuery)
     ASSERT_EQ(ret, iuring::ReceivePostAction::RE_SUBMIT);
 
     rt_kernel->run(1s);
+}
+
+// Test that MDNS packets with extensive name compression are handled correctly
+TEST_F(MDNS_ServiceTest, HandlesCompressedNames)
+{
+    auto service = std::make_shared<MDNS_Service>(
+        rt_kernel, network, *logger, *adapter, *socket_factory);
+
+    auto handler = std::make_shared<MockMDNSHandler>(network, *logger, *adapter);
+    service->add_handler(handler);
+
+    // Expect handle_reply to be called with 3 PTR records
+    EXPECT_CALL(*handler, handle_reply(_))
+        .WillOnce([](const std::vector<ReplyData>& replies) {
+            // Should have 3 answers
+            EXPECT_EQ(replies.size(), 3);
+            
+            if (replies.size() >= 3)
+            {
+                // First reply: _http._tcp.local -> myservice._http._tcp.local
+                const auto& reply1 = replies[0];
+                EXPECT_EQ(reply1.name_list.size(), 3);
+                if (reply1.name_list.size() == 3)
+                {
+                    EXPECT_EQ(reply1.name_list[0], "_http");
+                    EXPECT_EQ(reply1.name_list[1], "_tcp");
+                    EXPECT_EQ(reply1.name_list[2], "local");
+                }
+                EXPECT_EQ(reply1.type, 12); // PTR
+                EXPECT_TRUE(reply1.PTR.has_value());
+                if (reply1.PTR.has_value())
+                {
+                    EXPECT_EQ(reply1.PTR->size(), 4);
+                    if (reply1.PTR->size() == 4)
+                    {
+                        EXPECT_EQ((*reply1.PTR)[0], "myservice");
+                        EXPECT_EQ((*reply1.PTR)[1], "_http");
+                        EXPECT_EQ((*reply1.PTR)[2], "_tcp");
+                        EXPECT_EQ((*reply1.PTR)[3], "local");
+                    }
+                }
+
+                // Second reply: _http._tcp.local -> otherservice._http._tcp.local
+                const auto& reply2 = replies[1];
+                EXPECT_EQ(reply2.name_list.size(), 3);
+                if (reply2.name_list.size() == 3)
+                {
+                    EXPECT_EQ(reply2.name_list[0], "_http");
+                    EXPECT_EQ(reply2.name_list[1], "_tcp");
+                    EXPECT_EQ(reply2.name_list[2], "local");
+                }
+                EXPECT_TRUE(reply2.PTR.has_value());
+                if (reply2.PTR.has_value())
+                {
+                    EXPECT_EQ(reply2.PTR->size(), 4);
+                    if (reply2.PTR->size() == 4)
+                    {
+                        EXPECT_EQ((*reply2.PTR)[0], "otherservice");
+                        EXPECT_EQ((*reply2.PTR)[1], "_http");
+                        EXPECT_EQ((*reply2.PTR)[2], "_tcp");
+                        EXPECT_EQ((*reply2.PTR)[3], "local");
+                    }
+                }
+
+                // Third reply: _http._tcp.local -> thirdservice._http._tcp.local
+                const auto& reply3 = replies[2];
+                EXPECT_EQ(reply3.name_list.size(), 3);
+                EXPECT_TRUE(reply3.PTR.has_value());
+                if (reply3.PTR.has_value())
+                {
+                    EXPECT_EQ(reply3.PTR->size(), 4);
+                    if (reply3.PTR->size() == 4)
+                    {
+                        EXPECT_EQ((*reply3.PTR)[0], "thirdservice");
+                        EXPECT_EQ((*reply3.PTR)[1], "_http");
+                        EXPECT_EQ((*reply3.PTR)[2], "_tcp");
+                        EXPECT_EQ((*reply3.PTR)[3], "local");
+                    }
+                }
+            }
+            return MDNS_IsHandled::IS_HANDLED;
+        });
+
+    // Create packet with extensive name compression
+    auto packet = create_mdns_reply_with_compression(0x9999);
+
+    auto src_addr = iuring::IPAddress::parse("192.168.1.110").value();
+    iuring::ReceivedMessage msg(packet.data(), packet.size(), src_addr);
+
+    iuring::recv_callback_func_t recv_callback;
+    EXPECT_CALL(*network, submit_recv(_, _))
+        .WillOnce([&recv_callback](const std::shared_ptr<ISocket>&,
+                      iuring::recv_callback_func_t handler) {
+            recv_callback = handler;
+        });
+
+    auto init_result = service->init();
+    EXPECT_EQ(init_result, error::Error::OK);
+
+    ASSERT_TRUE(recv_callback != nullptr);
+    auto ret = recv_callback(msg);
+    ASSERT_EQ(ret, iuring::ReceivePostAction::RE_SUBMIT);
 }
 
 } // anonymous namespace
